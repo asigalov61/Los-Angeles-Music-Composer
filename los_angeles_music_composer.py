@@ -201,19 +201,20 @@ melody_chords_f1 = []
 itrack = 1
 patches = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-patch_map = [[0, 1, 2, 3, 4, 5, 6, 7], # Piano 
-          [24, 25, 26, 27, 28, 29, 30], # Guitar
-          [32, 33, 34, 35, 36, 37, 38, 39], # Bass
-          [40, 41], # Violin
-          [42, 43], # Cello
-          [46], # Harp
-          [56, 57, 58, 59, 60], # Trumpet
-          [71, 72], # Clarinet
-          [73, 74, 75], # Flute
-          [-1], # Drums
-          [52, 53], # Choir
-          [16, 17, 18, 19, 20] # Organ
-          ]
+patch_map = [
+            [0, 1, 2, 3, 4, 5, 6, 7], # Piano 
+            [24, 25, 26, 27, 28, 29, 30], # Guitar
+            [32, 33, 34, 35, 36, 37, 38, 39], # Bass
+            [40, 41], # Violin
+            [42, 43], # Cello
+            [46], # Harp
+            [56, 57, 58, 59, 60], # Trumpet
+            [64, 65, 66, 67, 68, 69, 70, 71], # Sax
+            [72, 73, 74, 75, 76, 77, 78], # Flute
+            [-1], # Drums
+            [52, 53], # Choir
+            [16, 17, 18, 19, 20] # Organ
+            ]
 
 while itrack < len(score):
   for event in score[itrack]:         
