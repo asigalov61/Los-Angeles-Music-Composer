@@ -26,5 +26,16 @@
 
 ***
 
+## Text-To-Music Version
+
+[![Open In Colab][colab-badge]][colab-notebook1]
+
+[colab-notebook1]: <https://colab.research.google.com/github/asigalov61/Los-Angeles-Music-Composer/blob/main/Los_Angeles_Music_Composer_TTM_Edition.ipynb>
+[colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
+
+### Generate music based on the title of your imagination :)
+
+***
+
 ### Project Los Angeles
 ### Tegridy Code 2023
