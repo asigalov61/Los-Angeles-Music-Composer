@@ -198,7 +198,9 @@ score = TMIDIX.midi2ms_score(open(f, 'rb').read())
 events_matrix = []
 melody_chords_f = []
 melody_chords_f1 = []
+
 itrack = 1
+
 patches = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 patch_map = [
@@ -245,7 +247,6 @@ for event in events_matrix:
 
       if event[3] < 12: # We won't write chans 12-16 for now...
           events_matrix1.append(event)
-          # stats[event[3]] += 1
 
 #=======================================================
 # PRE-PROCESSING
@@ -288,103 +289,93 @@ if len(events_matrix1) > 0 and len(instruments_list_without_drums) > 0:
 
       pe = e
 
-  if len([y for y in melody_chords if y[2] != 9]) > 12: # Filtering out tiny/bad MIDIs...
+instruments_list = list(set([y[2] for y in melody_chords]))
+num_instr = len(instruments_list)
 
-    times = [y[0] for y in melody_chords[12:]]
-    avg_time = sum(times) / len(times)
+#=======================================================
+# FINAL PROCESSING
+#=======================================================
 
-    times_list = list(set(times))
+# Break between compositions / Intro seq
 
-    instruments_list = list(set([y[2] for y in melody_chords]))
-    num_instr = len(instruments_list)
+if 9 in instruments_list:
+  drums_present = 2818 # Yes
+else:
+  drums_present = 2817 # No
 
-    if avg_time < 112 and instruments_list != [9]: # Filtering out bad MIDIs...
-      if 0 in times_list: # Filtering out (mono) melodies MIDIs
+melody_chords_f.extend([2816, drums_present, 2819+(num_instr-1)])
 
-          #=======================================================
-          # FINAL PROCESSING
-          #=======================================================
+#=======================================================
 
-          # Break between compositions / Intro seq
+# Composition control seq
+intro_mode_time = statistics.mode([0] + [y[0] for y in melody_chords if y[2] != 9 and y[0] != 0])
+intro_mode_dur = statistics.mode([y[1] for y in melody_chords if y[2] != 9])
+intro_mode_pitch = statistics.mode([y[3] for y in melody_chords if y[2] != 9])
+intro_mode_velocity = statistics.mode([y[4] for y in melody_chords if y[2] != 9])
 
-          if 9 in instruments_list:
-            drums_present = 2818 # Yes
-          else:
-            drums_present = 2817 # No
+# Instrument value 12 is reserved for composition control seq
+intro_dur_vel = (intro_mode_dur * 8) + (intro_mode_velocity-1)
+intro_cha_ptc = (12 * 128) + intro_mode_pitch
 
-          melody_chords_f.extend([2816, drums_present, 2819+(num_instr-1)])
+melody_chords_f.extend([intro_mode_time, intro_dur_vel+128, intro_cha_ptc+1152])
 
-          #=======================================================
+# TOTAL DICTIONARY SIZE 2831
 
-          # Composition control seq
-          intro_mode_time = statistics.mode([0] + [y[0] for y in melody_chords if y[2] != 9 and y[0] != 0])
-          intro_mode_dur = statistics.mode([y[1] for y in melody_chords if y[2] != 9])
-          intro_mode_pitch = statistics.mode([y[3] for y in melody_chords if y[2] != 9])
-          intro_mode_velocity = statistics.mode([y[4] for y in melody_chords if y[2] != 9])
+#=======================================================
+# MAIN PROCESSING CYCLE
+#=======================================================
 
-          # Instrument value 12 is reserved for composition control seq
-          intro_dur_vel = (intro_mode_dur * 8) + (intro_mode_velocity-1)
-          intro_cha_ptc = (12 * 128) + intro_mode_pitch
+for m in melody_chords:
 
-          melody_chords_f.extend([intro_mode_time, intro_dur_vel+128, intro_cha_ptc+1152])
+  # WRITING EACH NOTE HERE
+  dur_vel = (m[1] * 8) + (m[4]-1)
+  cha_ptc = (m[2] * 128) + m[3]
 
-          # TOTAL DICTIONARY SIZE 2831
+  melody_chords_f.extend([m[0], dur_vel+128, cha_ptc+1152])
+  melody_chords_f1.append([m[0], dur_vel+128, cha_ptc+1152])
 
-          #=======================================================
-          # MAIN PROCESSING CYCLE
-          #=======================================================
-
-          for m in melody_chords:
-
-            # WRITING EACH NOTE HERE
-            dur_vel = (m[1] * 8) + (m[4]-1)
-            cha_ptc = (m[2] * 128) + m[3]
-
-            melody_chords_f.extend([m[0], dur_vel+128, cha_ptc+1152])
-            melody_chords_f1.append([m[0], dur_vel+128, cha_ptc+1152])
-
-    #=======================================================
+#=======================================================
   
-    song = melody_chords_f
-    song_f = []
-    tim = 0
-    dur = 0
-    vel = 0
-    pitch = 0
-    channel = 0
+song = melody_chords_f
+song_f = []
+tim = 0
+dur = 0
+vel = 0
+pitch = 0
+channel = 0
 
+son = []
+song1 = []
+
+for s in song:
+  if s >= 128 and s < (12*128)+1152:
+    son.append(s)
+  else:
+    if len(son) == 3:
+      song1.append(son)
     son = []
-    song1 = []
+    son.append(s)
+                
+for ss in song1:
 
-    for s in song:
-      if s >= 128 and s < (12*128)+1152:
-        son.append(s)
-      else:
-        if len(son) == 3:
-          song1.append(son)
-        son = []
-        son.append(s)
-                    
-    for ss in song1:
+  tim += ss[0] * 10
 
-      tim += ss[0] * 10
+  dur = ((ss[1]-128) // 8) * 20
+  vel = (((ss[1]-128) % 8)+1) * 15
 
-      dur = ((ss[1]-128) // 8) * 20
-      vel = (((ss[1]-128) % 8)+1) * 15
-   
-      channel = (ss[2]-1152) // 128
-      pitch = (ss[2]-1152) % 128
-                      
-      song_f.append(['note', tim, dur, channel, pitch, vel ])
+  channel = (ss[2]-1152) // 128
+  pitch = (ss[2]-1152) % 128
+                  
+  song_f.append(['note', tim, dur, channel, pitch, vel ])
 
-    detailed_stats = TMIDIX.Tegridy_SONG_to_MIDI_Converter(song_f,
-                                                          output_signature = 'Los Angeles Music Composer',  
-                                                          output_file_name = '/content/Los-Angeles-Music-Composer-Seed-Composition',
-                                                          track_name='Project Los Angeles',
-                                                          list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0],
-                                                          number_of_ticks_per_quarter=500)
-        
-    #=======================================================
+detailed_stats = TMIDIX.Tegridy_SONG_to_MIDI_Converter(song_f,
+                                                      output_signature = 'Los Angeles Music Composer',  
+                                                      output_file_name = '/content/Los-Angeles-Music-Composer-Seed-Composition',
+                                                      track_name='Project Los Angeles',
+                                                      list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0],
+                                                      number_of_ticks_per_quarter=500)
+    
+#=======================================================
 
 print('=' * 70)
 print('Composition stats:')
@@ -863,11 +854,11 @@ for e in events_matrix1:
       cha_ptc = (melody_instrument_number * 128) + ptc
 
       if tim != 0:
-
-
         melody.append([tim, dur_vel+128, cha_ptc+1152])
 
       pe = e
+
+melody[0][0] = 0
 
 #=======================================================
 
