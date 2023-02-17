@@ -553,7 +553,7 @@ if block_action == 'add_last_generated_block':
   melody_chords_f.extend(out0[min(len(out0)-1, add_block_with_batch_number)])
   print('Block added!')
 else:
-  melody_chords_f = melody_chords_f[:max(number_of_prime_tokens, (len(melody_chords_f)-512))]
+  melody_chords_f = melody_chords_f[:max(number_of_prime_tokens, (len(melody_chords_f)-402))]
   print('Block removed!')
 
 print('=' * 70)
