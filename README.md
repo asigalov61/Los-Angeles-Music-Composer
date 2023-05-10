@@ -13,6 +13,8 @@
 [colab-notebook3]: <https://colab.research.google.com/github/asigalov61/Los-Angeles-Music-Composer/blob/main/Los_Angeles_Music_Composer.ipynb>
 [colab-badge]: <https://colab.research.google.com/assets/colab-badge.svg>
 
+### Features demonstration
+
 ***
 
 ## Composer Version
