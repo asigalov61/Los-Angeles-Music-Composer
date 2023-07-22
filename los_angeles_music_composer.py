@@ -1049,8 +1049,8 @@ if len(out2) != 0:
 
 melody_instrument = "Flute" #@param ["Piano", "Guitar", "Bass", "Violin", "Cello", "Harp", "Trumpet", "Clarinet", "Flute", "Choir", "Organ"]
 melody_length_in_notes = 48 #@param {type:"slider", min:16, max:512, step:16}
-number_of_prime_notes = 0 #@param {type:"slider", min:0, max:32, step:1}
-number_of_generation_attempts_per_melody_note = 16 #@param {type:"slider", min:1, max:64, step:1}
+number_of_prime_notes = 1 #@param {type:"slider", min:1, max:32, step:1}
+number_of_generation_attempts_per_melody_note = 1 #@param {type:"slider", min:1, max:16, step:1}
 temperature = 1 #@param {type:"slider", min:0.1, max:1, step:0.1}
 
 print('=' * 70)
@@ -1060,7 +1060,7 @@ print('=' * 70)
 print('Extracting melody...')
 #=======================================================
 
-instruments_list = ["Piano", "Guitar", "Bass", "Violin", "Cello", "Harp", "Trumpet", "Clarinet", "Flute", 'Drums', "Choir", "Organ"]
+instruments_list = ["Piano", "Guitar", "Bass", "Violin", "Cello", "Harp", "Trumpet", "Sax", "Flute", 'Drums', "Choir", "Organ"]
 melody_instrument_number = instruments_list.index(melody_instrument)
 
 melody = []
@@ -1070,21 +1070,24 @@ for e in events_matrix1:
     if e[3] != 9:
 
       # Cliping all values...
-      tim = max(0, min(127, e[1]-pe[1]))
+      time = max(0, min(127, e[1]-pe[1]))
       dur = max(1, min(127, e[2]))
-      cha = max(0, min(11, e[3]))
+      cha = melody_instrument_number
       ptc = max(1, min(127, e[4]))
-      vel = max(8, min(127, e[5]))
+
+      if ptc < 60:
+        ptc_aug = (ptc % 12) + 60
+      else:
+        ptc_aug = ptc
 
       velocity = round(vel / 15)
 
-
       # WRITING EACH NOTE HERE
       dur_vel = (dur * 8) + (velocity-1)
-      cha_ptc = (melody_instrument_number * 128) + ptc
+      cha_ptc = (melody_instrument_number * 128) + ptc_aug
 
-      if tim != 0:
-        melody.append([tim, dur_vel+128, cha_ptc+1152])
+      if time != 0:
+        melody.append([time, dur_vel+128, cha_ptc+1152])
 
       pe = e
 
@@ -1094,7 +1097,7 @@ melody[0][0] = 0
 
 print('=' * 70)
 print('Melody has', len(melody), 'notes')
-print('Melody has', len(melody)*4, 'tokens')
+print('Melody has', len(melody)*3, 'tokens')
 
 print('=' * 70)
 print('Starting harmonization...')
@@ -1105,8 +1108,8 @@ inp = []
 for m in melody[:number_of_prime_notes]:
   inp.extend(m)
 
-#start_time = time()
 chord_time = 0
+pct = 0
 
 for i in tqdm.tqdm(range(number_of_prime_notes, len(melody[:melody_length_in_notes])-1)):
 
@@ -1136,7 +1139,7 @@ for i in tqdm.tqdm(range(number_of_prime_notes, len(melody[:melody_length_in_not
 
     count += 1
 
-    if out1[0][0] < 128:
+    if out1[0][0] < 256:
 
       chord_time += out1[0][0].item()
 
@@ -1144,8 +1147,6 @@ for i in tqdm.tqdm(range(number_of_prime_notes, len(melody[:melody_length_in_not
 
 print('=' * 70)
 print('Done!')
-print('=' * 70)
-#print('Generation took', time() - start_time, "seconds")
 print('=' * 70)
 
 #======================================================================
