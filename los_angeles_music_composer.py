@@ -1060,7 +1060,7 @@ print('=' * 70)
 print('Extracting melody...')
 #=======================================================
 
-instruments_list = ["Piano", "Guitar", "Bass", "Violin", "Cello", "Harp", "Trumpet", "Sax", "Flute", 'Drums', "Choir", "Organ"]
+instruments_list = ["Piano", "Guitar", "Bass", "Violin", "Cello", "Harp", "Trumpet", "Clarinet", "Flute", 'Drums', "Choir", "Organ"]
 melody_instrument_number = instruments_list.index(melody_instrument)
 
 melody = []
@@ -1139,7 +1139,7 @@ for i in tqdm.tqdm(range(number_of_prime_notes, len(melody[:melody_length_in_not
 
     count += 1
 
-    if out1[0][0] < 256:
+    if out1[0][0] < 128:
 
       chord_time += out1[0][0].item()
 
