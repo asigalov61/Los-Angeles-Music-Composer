@@ -33,7 +33,7 @@ WARNING: This complete implementation is a functioning model of the Artificial I
 """# (SETUP ENVIRONMENT)"""
 
 #@title Install dependencies
-!git clone https://github.com/asigalov61/Los-Angeles-Music-Composer
+!git clone --depth 1 https://github.com/asigalov61/Los-Angeles-Music-Composer
 !pip install torch
 !pip install einops
 !pip install fuzzywuzzy[speedup]
@@ -256,11 +256,11 @@ inp = [outy] * number_of_batches_to_generate
 
 inp = torch.LongTensor(inp).cuda()
 
-out = model.module.generate(inp, 
-                      number_of_tokens_to_generate, 
-                      temperature=temperature, 
-                      return_prime=True, 
-                      min_stop_token=min_stop_token, 
+out = model.module.generate(inp,
+                      number_of_tokens_to_generate,
+                      temperature=temperature,
+                      return_prime=True,
+                      min_stop_token=min_stop_token,
                       verbose=True)
 
 out0 = out.tolist()
@@ -282,7 +282,7 @@ for i in range(number_of_batches_to_generate):
   print('=' * 70)
 
   if len(out) != 0:
-      
+
       song = out1
       song_f = []
       tim = 0
@@ -302,22 +302,22 @@ for i in range(number_of_batches_to_generate):
             song1.append(son)
           son = []
           son.append(s)
-                      
+
       for ss in song1:
 
         tim += ss[0] * 10
 
         dur = ((ss[1]-128) // 8) * 20
         vel = (((ss[1]-128) % 8)+1) * 15
-    
+
         channel = (ss[2]-1152) // 128
         pitch = (ss[2]-1152) % 128
-                        
+
         song_f.append(['note', tim, dur, channel, pitch, vel ])
 
       detailed_stats = TMIDIX.Tegridy_SONG_to_MIDI_Converter(song_f,
-                                                          output_signature = 'Los Angeles Music Composer',  
-                                                          output_file_name = '/content/Los-Angeles-Music-Composer-Music-Composition_'+str(i), 
+                                                          output_signature = 'Los Angeles Music Composer',
+                                                          output_file_name = '/content/Los-Angeles-Music-Composer-Music-Composition_'+str(i),
                                                           track_name='Project Los Angeles',
                                                           list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0],
                                                           number_of_ticks_per_quarter=500)
