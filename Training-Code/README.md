@@ -9,5 +9,9 @@
 
 ***
 
+## Recommended DL/ML cloud provider: [Lambda Labs](https://lambdalabs.com/)
+
+***
+
 ### Project Los Angeles
 ### Tegridy Code 2023
