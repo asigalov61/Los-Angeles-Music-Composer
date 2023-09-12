@@ -39,5 +39,13 @@
 
 ***
 
+## Please also check out other similar projects
+
+### [Euterpe X](https://github.com/asigalov61/Euterpe-X)
+### [Allegro Music Transformer](https://github.com/asigalov61/Allegro-Music-Transformer)
+### [Lars Ulrich Transformer](https://github.com/asigalov61/Lars-Ulrich-Transformer)
+
+***
+
 ### Project Los Angeles
 ### Tegridy Code 2023
