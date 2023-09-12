@@ -9,7 +9,9 @@
 
 ***
 
-## Recommended MIDI datasets: Los Angeles MIDI Dataset or LAKH MIDI Dataset (included with code/colab)
+## Recommended MIDI datasets: 
+### 1) [Los Angeles MIDI Dataset](https://github.com/asigalov61/Los-Angeles-MIDI-Dataset)
+### 2) [LAKH MIDI Dataset](https://colinraffel.com/projects/lmd/) (included with code/colab)
 
 ***
 
