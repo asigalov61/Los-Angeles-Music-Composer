@@ -41,9 +41,18 @@
 
 ## Please also check out other similar projects
 
-### [Euterpe X](https://github.com/asigalov61/Euterpe-X)
-### [Allegro Music Transformer](https://github.com/asigalov61/Allegro-Music-Transformer)
-### [Lars Ulrich Transformer](https://github.com/asigalov61/Lars-Ulrich-Transformer)
+### 🥇[Allegro Music Transformer](https://github.com/asigalov61/Allegro-Music-Transformer)🥇
+
+#### Best model/implementation overall. Try it out! :)
+
+
+### 🥈[Euterpe X](https://github.com/asigalov61/Euterpe-X)🥈
+
+#### Most stable and capable model/implementation. Great for generating complex compositions.
+
+### 🥉[Lars Ulrich Transformer](https://github.com/asigalov61/Lars-Ulrich-Transformer)🥉
+
+#### Need great drums?!? Look no further!!! :)
 
 ***
 
