@@ -61,6 +61,14 @@ print('=' * 70)
 print('Loading main Los Angeles Music Composer modules...')
 import torch
 
+torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
+torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
+device_type = 'cuda'
+dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
+
+ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
+ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype)
+
 # %cd /content/Los-Angeles-Music-Composer
 
 import TMIDIX
@@ -113,14 +121,6 @@ print('Loading Los Angeles Music Composer Pre-Trained Model...')
 print('Please wait...')
 print('=' * 70)
 print('Instantiating model...')
-
-torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-device_type = 'cuda'
-dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
-
-ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
-ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 SEQ_LEN = 4096
 # instantiate the model
