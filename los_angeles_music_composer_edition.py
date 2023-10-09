@@ -204,9 +204,6 @@ print('=' * 70)
 #=======================================================
 # START PROCESSING
 
-# Convering MIDI to ms score with MIDI.py module
-score = TMIDIX.midi2ms_score(open(f, 'rb').read())
-
 # INSTRUMENTS CONVERSION CYCLE
 events_matrix = []
 melody_chords_f = []
