@@ -41,7 +41,9 @@ r'''############################################################################
 #   Please see TMIDI 2.3/tegridy-tools repo for full MIDI.py module code
 # 
 #   Or you can always download the latest full version from:
-#	https://pjb.com.au/
+#
+#   https://pjb.com.au/
+#   https://peterbillam.gitlab.io/miditools/
 #	
 #	Copyright 2020 Peter Billam
 #
@@ -277,6 +279,73 @@ tick per millisecond, using midi2opus() then to_millisecs()
 then opus2score()
 '''
     return opus2score(to_millisecs(midi2opus(midi)))
+
+def midi2single_track_ms_score(midi=b'', recalculate_channels = True, verbose = False):
+    r'''
+Translates MIDI into a single track "score" with 16 instruments and one beat per second and one
+tick per millisecond
+'''
+
+    score = midi2score(midi)
+
+    if recalculate_channels:
+
+      events_matrixes = []
+
+      itrack = 1
+      events_matrixes_channels = []
+      while itrack < len(score):
+          events_matrix = []
+          for event in score[itrack]:
+              if event[0] == 'note' and event[3] != 9:
+                event[3] = (16 * (itrack-1)) + event[3]
+                if event[3] not in events_matrixes_channels:
+                  events_matrixes_channels.append(event[3])
+
+              events_matrix.append(event)
+          events_matrixes.append(events_matrix)
+          itrack += 1
+
+      events_matrix1 = []
+      for e in events_matrixes:
+        events_matrix1.extend(e)
+
+      if verbose:
+        if len(events_matrixes_channels) > 16:
+          print('MIDI has', len(events_matrixes_channels), 'instruments!', len(events_matrixes_channels) - 16, 'instrument(s) will be removed!')
+
+      for e in events_matrix1:
+        if e[0] == 'note' and e[3] != 9:
+          if e[3] in events_matrixes_channels[:15]:
+            if events_matrixes_channels[:15].index(e[3]) < 9:
+              e[3] = events_matrixes_channels[:15].index(e[3])
+            else:
+              e[3] = events_matrixes_channels[:15].index(e[3])+1
+          else:
+            events_matrix1.remove(e)
+        
+        if e[0] in ['patch_change', 'control_change', 'channel_after_touch', 'key_after_touch', 'pitch_wheel_change'] and e[2] != 9:
+          if e[2] in [e % 16 for e in events_matrixes_channels[:15]]:
+            if [e % 16 for e in events_matrixes_channels[:15]].index(e[2]) < 9:
+              e[2] = [e % 16 for e in events_matrixes_channels[:15]].index(e[2])
+            else:
+              e[2] = [e % 16 for e in events_matrixes_channels[:15]].index(e[2])+1
+          else:
+            events_matrix1.remove(e)
+    
+    else:
+      events_matrix1 = []
+      itrack = 1
+     
+      while itrack < len(score):
+          for event in score[itrack]:
+            events_matrix1.append(event)
+          itrack += 1    
+
+    opus = score2opus([score[0], events_matrix1])
+    ms_score = opus2score(to_millisecs(opus))
+
+    return ms_score
 
 #------------------------ Other Transformations ---------------------
 
@@ -1499,7 +1568,8 @@ def Tegridy_SONG_to_MIDI_Converter(SONG,
                                   number_of_ticks_per_quarter = 425,
                                   list_of_MIDI_patches = [0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 0, 0, 0, 0, 0, 0],
                                   output_file_name = 'TMIDI-Composition',
-                                  text_encoding='ISO-8859-1'):
+                                  text_encoding='ISO-8859-1',
+                                  verbose=True):
 
     '''Tegridy SONG to MIDI Converter
      
@@ -1516,8 +1586,9 @@ def Tegridy_SONG_to_MIDI_Converter(SONG,
 
     Project Los Angeles
     Tegridy Code 2020'''                                  
-
-    print('Converting to MIDI. Please stand-by...')
+    
+    if verbose:
+        print('Converting to MIDI. Please stand-by...')
     
     output_header = [number_of_ticks_per_quarter, 
                     [['track_name', 0, bytes(output_signature, text_encoding)]]]                                                    
@@ -1549,7 +1620,121 @@ def Tegridy_SONG_to_MIDI_Converter(SONG,
         midi_file.write(midi_data)
         midi_file.close()
     
-    print('Done! Enjoy! :)')
+    if verbose:    
+        print('Done! Enjoy! :)')
+    
+    return detailed_MIDI_stats
+
+###################################################################################
+
+def Tegridy_ms_SONG_to_MIDI_Converter(SONG,
+                                      output_signature = 'Tegridy TMIDI Module', 
+                                      track_name = 'Composition Track',
+                                      list_of_MIDI_patches = [0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 0, 0, 0, 0, 0, 0],
+                                      output_file_name = 'TMIDI-Composition',
+                                      text_encoding='ISO-8859-1',
+                                      verbose=True):
+
+    '''Tegridy milisecond SONG to MIDI Converter
+     
+    Input: Input ms SONG in TMIDI ms SONG/MIDI.py ms Score format
+           Output MIDI Track 0 name / MIDI Signature
+           Output MIDI Track 1 name / Composition track name
+           List of 16 MIDI patch numbers for output MIDI. Def. is MuseNet compatible patches.
+           Output file name w/o .mid extension.
+           Optional text encoding if you are working with text_events/lyrics. This is especially useful for Karaoke. Please note that anything but ISO-8859-1 is a non-standard way of encoding text_events according to MIDI specs.
+
+    Output: MIDI File
+            Detailed MIDI stats
+
+    Project Los Angeles
+    Tegridy Code 2020'''                                  
+    
+    if verbose:
+        print('Converting to MIDI. Please stand-by...')
+
+    output_header = [1000,
+                    [['set_tempo', 0, 1000000],
+                     ['time_signature', 0, 4, 2, 24, 8],
+                     ['track_name', 0, bytes(output_signature, text_encoding)]]]
+
+    patch_list = [['patch_change', 0, 0, list_of_MIDI_patches[0]], 
+                    ['patch_change', 0, 1, list_of_MIDI_patches[1]],
+                    ['patch_change', 0, 2, list_of_MIDI_patches[2]],
+                    ['patch_change', 0, 3, list_of_MIDI_patches[3]],
+                    ['patch_change', 0, 4, list_of_MIDI_patches[4]],
+                    ['patch_change', 0, 5, list_of_MIDI_patches[5]],
+                    ['patch_change', 0, 6, list_of_MIDI_patches[6]],
+                    ['patch_change', 0, 7, list_of_MIDI_patches[7]],
+                    ['patch_change', 0, 8, list_of_MIDI_patches[8]],
+                    ['patch_change', 0, 9, list_of_MIDI_patches[9]],
+                    ['patch_change', 0, 10, list_of_MIDI_patches[10]],
+                    ['patch_change', 0, 11, list_of_MIDI_patches[11]],
+                    ['patch_change', 0, 12, list_of_MIDI_patches[12]],
+                    ['patch_change', 0, 13, list_of_MIDI_patches[13]],
+                    ['patch_change', 0, 14, list_of_MIDI_patches[14]],
+                    ['patch_change', 0, 15, list_of_MIDI_patches[15]],
+                    ['track_name', 0, bytes(track_name, text_encoding)]]
+
+    output = output_header + [patch_list + SONG]
+
+    midi_data = score2midi(output, text_encoding)
+    detailed_MIDI_stats = score2stats(output)
+
+    with open(output_file_name + '.mid', 'wb') as midi_file:
+        midi_file.write(midi_data)
+        midi_file.close()
+    
+    if verbose:    
+        print('Done! Enjoy! :)')
+    
+    return detailed_MIDI_stats
+
+###################################################################################
+
+def Tegridy_SONG_to_Full_MIDI_Converter(SONG,
+                                        output_signature = 'Tegridy TMIDI Module', 
+                                        track_name = 'Composition Track',
+                                        number_of_ticks_per_quarter = 1000,
+                                        output_file_name = 'TMIDI-Composition',
+                                        text_encoding='ISO-8859-1',
+                                        verbose=True):
+
+    '''Tegridy SONG to Full MIDI Converter
+     
+    Input: Input SONG in Full TMIDI SONG/MIDI.py Score format
+           Output MIDI Track 0 name / MIDI Signature
+           Output MIDI Track 1 name / Composition track name
+           Number of ticks per quarter for the output MIDI
+           Output file name w/o .mid extension.
+           Optional text encoding if you are working with text_events/lyrics. This is especially useful for Karaoke. Please note that anything but ISO-8859-1 is a non-standard way of encoding text_events according to MIDI specs.
+
+    Output: MIDI File
+            Detailed MIDI stats
+
+    Project Los Angeles
+    Tegridy Code 2023'''                                  
+    
+    if verbose:
+        print('Converting to MIDI. Please stand-by...')
+    
+    output_header = [number_of_ticks_per_quarter,
+                    [['set_tempo', 0, 1000000],
+                      ['track_name', 0, bytes(output_signature, text_encoding)]]]                                                    
+
+    song_track = [['track_name', 0, bytes(track_name, text_encoding)]]
+
+    output = output_header + [song_track + SONG]
+
+    midi_data = score2midi(output, text_encoding)
+    detailed_MIDI_stats = score2stats(output)
+
+    with open(output_file_name + '.mid', 'wb') as midi_file:
+        midi_file.write(midi_data)
+        midi_file.close()
+    
+    if verbose:    
+        print('Done! Enjoy! :)')
     
     return detailed_MIDI_stats
 
