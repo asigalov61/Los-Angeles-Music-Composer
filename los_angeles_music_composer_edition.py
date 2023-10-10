@@ -201,8 +201,11 @@ if plot_tokens_embeddings:
 """# (LOAD SEED MIDI)"""
 
 #@title Load Seed MIDI
+
+#@markdown Press play button to to upload your own seed MIDI or to load one of the provided sample seed MIDIs from the dropdown list below
+
 select_seed_MIDI = "Upload your own custom MIDI" #@param ["Upload your own custom MIDI", "Los-Angeles-Music-Composer-Piano-Seed-1", "Los-Angeles-Music-Composer-Piano-Seed-2", "Los-Angeles-Music-Composer-Piano-Seed-3", "Los-Angeles-Music-Composer-Piano-Seed-4", "Los-Angeles-Music-Composer-Piano-Seed-5", "Los-Angeles-Music-Composer-MI-Seed-1", "Los-Angeles-Music-Composer-MI-Seed-2", "Los-Angeles-Music-Composer-MI-Seed-3", "Los-Angeles-Music-Composer-MI-Seed-4", "Los-Angeles-Music-Composer-MI-Seed-5"]
-number_of_prime_tokens = 402 #@param {type:"slider", min:126, max:3000, step:3}
+number_of_prime_tokens = 300 #@param {type:"slider", min:126, max:3000, step:3}
 render_MIDI_to_audio = False # @param {type:"boolean"}
 
 print('=' * 70)
@@ -462,7 +465,7 @@ else:
 ## Run the cells below in a loop to generate endless continuation
 """
 
-#@title Standard/Simple Continuation
+#@title Standard  Continuation Generator
 number_of_tokens_to_generate = 120 # @param {type:"slider", min:33, max:1023, step:3}
 number_of_batches_to_generate = 4 #@param {type:"slider", min:1, max:16, step:1}
 preview_length_in_tokens = 120 # @param {type:"slider", min:33, max:240, step:3}
@@ -471,7 +474,7 @@ temperature = 1 #@param {type:"slider", min:0.1, max:1, step:0.1}
 render_MIDI_to_audio = True # @param {type:"boolean"}
 
 print('=' * 70)
-print('Los Angeles Music Composer Standard Model Generator')
+print('Los Angeles Music Composer Standard Continuation Model Generator')
 print('=' * 70)
 
 preview = melody_chords_f[-preview_length_in_tokens:]
