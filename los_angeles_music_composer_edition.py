@@ -480,8 +480,6 @@ inp = [melody_chords_f[-number_of_memory_tokens:]] * number_of_batches_to_genera
 
 inp = torch.LongTensor(inp).cuda()
 
-start_time = time()
-
 with ctx:
   out = model.module.generate(inp,
                               number_of_tokens_to_generate,
@@ -493,9 +491,6 @@ out0 = out.tolist()
 
 print('=' * 70)
 print('Done!')
-
-print('=' * 70)
-print('Generation took', time() - start_time, "seconds")
 
 #======================================================================
 print('=' * 70)
@@ -552,7 +547,7 @@ for i in range(number_of_batches_to_generate):
                                                             track_name='Project Los Angeles',
                                                             list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0]
                                                             )
-        print('=' * 70)
+      print('=' * 70)
       print('Displaying resulting composition...')
       print('=' * 70)
 
