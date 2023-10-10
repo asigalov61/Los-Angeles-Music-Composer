@@ -38,7 +38,6 @@ WARNING: This complete implementation is a functioning model of the Artificial I
 !pip install einops
 !pip install fuzzywuzzy[speedup]
 !pip install torch-summary
-!pip install sklearn
 !pip install tqdm
 !pip install matplotlib
 !apt install fluidsynth #Pip does not work for some reason. Only apt works
@@ -61,14 +60,6 @@ import tqdm
 print('=' * 70)
 print('Loading main Los Angeles Music Composer modules...')
 import torch
-
-torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-device_type = 'cuda'
-dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32', 'bfloat16', or 'float16', the latter will auto implement a GradScaler
-
-ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
-ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 # %cd /content/Los-Angeles-Music-Composer
 
@@ -121,11 +112,15 @@ full_path_to_model_checkpoint = "/content/Los-Angeles-Music-Composer/Model/Los_A
 
 #@markdown Model precision option
 
-model_precision = "float16" # @param ["float16", "float32"]
+model_precision = "bfloat16" # @param ["bfloat16", "float16", "float32"]
+
+#@markdown bfloat16 == Third precision/triple speed (if supported, otherwise the model will default to float16)
 
 #@markdown float16 == Half precision/double speed
 
 #@markdown float32 == Full precision/normal speed
+
+plot_tokens_embeddings = False # @param {type:"boolean"}
 
 print('=' * 70)
 print('Loading Los Angeles Music Composer Pre-Trained Model...')
@@ -136,7 +131,19 @@ print('Instantiating model...')
 torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
 torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
 device_type = 'cuda'
-ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[model_precision]
+
+if model_precision == 'bloat16' and torch.cuda.is_bf16_supported():
+  dtype = 'bloat16'
+else:
+  dtype = 'float16'
+
+if model_precision == 'float16':
+  dtype = 'float16'
+
+if model_precision == 'float32':
+  dtype = 'float32'
+
+ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
 ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 SEQ_LEN = 4096
@@ -167,25 +174,30 @@ model.eval()
 print('Done!')
 print('=' * 70)
 
+print('Model will use', dtype, 'precision...')
+print('=' * 70)
+
 # Model stats
 print('Model summary...')
 summary(model)
 
 # Plot Token Embeddings
-tok_emb = model.module.token_emb.weight.detach().cpu().tolist()
 
-cos_sim = metrics.pairwise_distances(
-   tok_emb, metric='cosine'
-)
-plt.figure(figsize=(7, 7))
-plt.imshow(cos_sim, cmap="inferno", interpolation="nearest")
-im_ratio = cos_sim.shape[0] / cos_sim.shape[1]
-plt.colorbar(fraction=0.046 * im_ratio, pad=0.04)
-plt.xlabel("Position")
-plt.ylabel("Position")
-plt.tight_layout()
-plt.plot()
-plt.savefig("/content/Los-Angeles-Music-Composer-Tokens-Embeddings-Plot.png", bbox_inches="tight")
+if plot_tokens_embeddings:
+  tok_emb = model.module.token_emb.weight.detach().cpu().tolist()
+
+  cos_sim = metrics.pairwise_distances(
+    tok_emb, metric='cosine'
+  )
+  plt.figure(figsize=(7, 7))
+  plt.imshow(cos_sim, cmap="inferno", interpolation="nearest")
+  im_ratio = cos_sim.shape[0] / cos_sim.shape[1]
+  plt.colorbar(fraction=0.046 * im_ratio, pad=0.04)
+  plt.xlabel("Position")
+  plt.ylabel("Position")
+  plt.tight_layout()
+  plt.plot()
+  plt.savefig("/content/Los-Angeles-Music-Composer-Tokens-Embeddings-Plot.png", bbox_inches="tight")
 
 """# (LOAD AUX DATA)"""
 
