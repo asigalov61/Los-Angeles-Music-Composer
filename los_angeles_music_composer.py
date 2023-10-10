@@ -37,7 +37,6 @@ WARNING: This complete implementation is a functioning model of the Artificial I
 !pip install torch
 !pip install einops
 !pip install torch-summary
-!pip install sklearn
 !pip install tqdm
 !pip install matplotlib
 !apt install fluidsynth #Pip does not work for some reason. Only apt works
@@ -111,11 +110,15 @@ full_path_to_model_checkpoint = "/content/Los-Angeles-Music-Composer/Model/Los_A
 
 #@markdown Model precision option
 
-model_precision = "float16" # @param ["float16", "float32"]
+model_precision = "bfloat16" # @param ["bfloat16", "float16", "float32"]
+
+#@markdown bfloat16 == Third precision/triple speed (if supported, otherwise the model will default to float16)
 
 #@markdown float16 == Half precision/double speed
 
 #@markdown float32 == Full precision/normal speed
+
+plot_tokens_embeddings = False # @param {type:"boolean"}
 
 print('=' * 70)
 print('Loading Los Angeles Music Composer Pre-Trained Model...')
@@ -126,7 +129,19 @@ print('Instantiating model...')
 torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
 torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
 device_type = 'cuda'
-ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[model_precision]
+
+if model_precision == 'bloat16' and torch.cuda.is_bf16_supported():
+  dtype = 'bloat16'
+else:
+  dtype = 'float16'
+
+if model_precision == 'float16':
+  dtype = 'float16'
+
+if model_precision == 'float32':
+  dtype = 'float32'
+
+ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
 ctx = torch.amp.autocast(device_type=device_type, dtype=ptdtype)
 
 SEQ_LEN = 4096
@@ -157,25 +172,30 @@ model.eval()
 print('Done!')
 print('=' * 70)
 
+print('Model will use', dtype, 'precision...')
+print('=' * 70)
+
 # Model stats
 print('Model summary...')
 summary(model)
 
 # Plot Token Embeddings
-tok_emb = model.module.token_emb.weight.detach().cpu().tolist()
 
-cos_sim = metrics.pairwise_distances(
-   tok_emb, metric='cosine'
-)
-plt.figure(figsize=(7, 7))
-plt.imshow(cos_sim, cmap="inferno", interpolation="nearest")
-im_ratio = cos_sim.shape[0] / cos_sim.shape[1]
-plt.colorbar(fraction=0.046 * im_ratio, pad=0.04)
-plt.xlabel("Position")
-plt.ylabel("Position")
-plt.tight_layout()
-plt.plot()
-plt.savefig("/content/Los-Angeles-Music-Composer-Tokens-Embeddings-Plot.png", bbox_inches="tight")
+if plot_tokens_embeddings:
+  tok_emb = model.module.token_emb.weight.detach().cpu().tolist()
+
+  cos_sim = metrics.pairwise_distances(
+    tok_emb, metric='cosine'
+  )
+  plt.figure(figsize=(7, 7))
+  plt.imshow(cos_sim, cmap="inferno", interpolation="nearest")
+  im_ratio = cos_sim.shape[0] / cos_sim.shape[1]
+  plt.colorbar(fraction=0.046 * im_ratio, pad=0.04)
+  plt.xlabel("Position")
+  plt.ylabel("Position")
+  plt.tight_layout()
+  plt.plot()
+  plt.savefig("/content/Los-Angeles-Music-Composer-Tokens-Embeddings-Plot.png", bbox_inches="tight")
 
 """# (GENERATE)
 
@@ -344,243 +364,254 @@ for i in range(number_of_batches_to_generate):
 select_seed_MIDI = "Upload your own custom MIDI" #@param ["Upload your own custom MIDI", "Los-Angeles-Music-Composer-Piano-Seed-1", "Los-Angeles-Music-Composer-Piano-Seed-2", "Los-Angeles-Music-Composer-Piano-Seed-3", "Los-Angeles-Music-Composer-Piano-Seed-4", "Los-Angeles-Music-Composer-Piano-Seed-5", "Los-Angeles-Music-Composer-MI-Seed-1", "Los-Angeles-Music-Composer-MI-Seed-2", "Los-Angeles-Music-Composer-MI-Seed-3", "Los-Angeles-Music-Composer-MI-Seed-4", "Los-Angeles-Music-Composer-MI-Seed-5"]
 render_MIDI_to_audio = False # @param {type:"boolean"}
 
+print('=' * 70)
+print('Los Angeles Music Composer Seed MIDI Loader')
+print('=' * 70)
+
+f = ''
+
 if select_seed_MIDI != "Upload your own custom MIDI":
+  print('Loading seed MIDI...')
   f = '/content/Los-Angeles-Music-Composer/Seeds/'+select_seed_MIDI+'.mid'
   score = TMIDIX.midi2ms_score(open(f, 'rb').read())
 
 else:
+  print('Upload your own custom MIDI...')
+  print('=' * 70)
   uploaded_MIDI = files.upload()
-  score = TMIDIX.midi2ms_score(list(uploaded_MIDI.values())[0])
-  f = list(uploaded_MIDI.keys())[0]
+  if list(uploaded_MIDI.keys()):
+    score = TMIDIX.midi2ms_score(list(uploaded_MIDI.values())[0])
+    f = list(uploaded_MIDI.keys())[0]
 
-print('=' * 70)
-print('Los Angeles Music Composer Seed MIDI Loader')
-print('=' * 70)
-print('Loading seed MIDI...')
-print('=' * 70)
-print('File:', f)
-print('=' * 70)
+if f != '':
 
-#=======================================================
-# START PROCESSING
-
-# INSTRUMENTS CONVERSION CYCLE
-events_matrix = []
-melody_chords_f = []
-melody_chords_f1 = []
-
-itrack = 1
-
-patches = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-patch_map = [
-            [0, 1, 2, 3, 4, 5, 6, 7], # Piano
-            [24, 25, 26, 27, 28, 29, 30], # Guitar
-            [32, 33, 34, 35, 36, 37, 38, 39], # Bass
-            [40, 41], # Violin
-            [42, 43], # Cello
-            [46], # Harp
-            [56, 57, 58, 59, 60], # Trumpet
-            [64, 65, 66, 67, 68, 69, 70, 71], # Sax
-            [72, 73, 74, 75, 76, 77, 78], # Flute
-            [-1], # Drums
-            [52, 53], # Choir
-            [16, 17, 18, 19, 20] # Organ
-            ]
-
-while itrack < len(score):
-  for event in score[itrack]:
-      if event[0] == 'note' or event[0] == 'patch_change':
-          events_matrix.append(event)
-  itrack += 1
-
-events_matrix.sort(key=lambda x: x[1])
-
-events_matrix1 = []
-
-for event in events_matrix:
-  if event[0] == 'patch_change':
-      patches[event[2]] = event[3]
-
-  if event[0] == 'note':
-      event.extend([patches[event[3]]])
-      once = False
-
-      for p in patch_map:
-          if event[6] in p and event[3] != 9: # Except the drums
-              event[3] = patch_map.index(p)
-              once = True
-
-      if not once and event[3] != 9: # Except the drums
-          event[3] = 15 # All other instruments/patches channel
-          event[5] = max(80, event[5])
-
-      if event[3] < 12: # We won't write chans 12-16 for now...
-          events_matrix1.append(event)
-
-#=======================================================
-# PRE-PROCESSING
-
-# checking number of instruments in a composition
-instruments_list_without_drums = list(set([y[3] for y in events_matrix1 if y[3] != 9]))
-
-if len(events_matrix1) > 0 and len(instruments_list_without_drums) > 0:
-
-  # recalculating timings
-  for e in events_matrix1:
-      e[1] = int(e[1] / 10) # Max 1 seconds for start-times
-      e[2] = int(e[2] / 20) # Max 2 seconds for durations
-
-  # Sorting by pitch, then by start-time
-  events_matrix1.sort(key=lambda x: x[4], reverse=True)
-  events_matrix1.sort(key=lambda x: x[1])
+  print('=' * 70)
+  print('File:', f)
+  print('=' * 70)
 
   #=======================================================
-  # FINAL PRE-PROCESSING
+  # START PROCESSING
 
-  melody_chords = []
+  # INSTRUMENTS CONVERSION CYCLE
+  events_matrix = []
+  melody_chords_f = []
+  melody_chords_f1 = []
 
-  pe = events_matrix1[0]
+  itrack = 1
 
-  for e in events_matrix1:
-    if e[1] >= 0 and e[2] > 0:
+  patches = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-      # Cliping all values...
-      tim = max(0, min(127, e[1]-pe[1]))
-      dur = max(1, min(127, e[2]))
-      cha = max(0, min(11, e[3]))
-      ptc = max(1, min(127, e[4]))
-      vel = max(8, min(127, e[5]))
+  patch_map = [
+              [0, 1, 2, 3, 4, 5, 6, 7], # Piano
+              [24, 25, 26, 27, 28, 29, 30], # Guitar
+              [32, 33, 34, 35, 36, 37, 38, 39], # Bass
+              [40, 41], # Violin
+              [42, 43], # Cello
+              [46], # Harp
+              [56, 57, 58, 59, 60], # Trumpet
+              [64, 65, 66, 67, 68, 69, 70, 71], # Sax
+              [72, 73, 74, 75, 76, 77, 78], # Flute
+              [-1], # Drums
+              [52, 53], # Choir
+              [16, 17, 18, 19, 20] # Organ
+              ]
 
-      velocity = round(vel / 15)
+  while itrack < len(score):
+    for event in score[itrack]:
+        if event[0] == 'note' or event[0] == 'patch_change':
+            events_matrix.append(event)
+    itrack += 1
 
-      # Writing final note
-      melody_chords.append([tim, dur, cha, ptc, velocity])
+  events_matrix.sort(key=lambda x: x[1])
 
-      pe = e
+  events_matrix1 = []
 
-instruments_list = list(set([y[2] for y in melody_chords]))
-num_instr = len(instruments_list)
+  for event in events_matrix:
+    if event[0] == 'patch_change':
+        patches[event[2]] = event[3]
 
-#=======================================================
-# FINAL PROCESSING
-#=======================================================
+    if event[0] == 'note':
+        event.extend([patches[event[3]]])
+        once = False
 
-# Break between compositions / Intro seq
+        for p in patch_map:
+            if event[6] in p and event[3] != 9: # Except the drums
+                event[3] = patch_map.index(p)
+                once = True
 
-if 9 in instruments_list:
-  drums_present = 2818 # Yes
-else:
-  drums_present = 2817 # No
+        if not once and event[3] != 9: # Except the drums
+            event[3] = 15 # All other instruments/patches channel
+            event[5] = max(80, event[5])
 
-melody_chords_f.extend([2816, drums_present, 2819+(num_instr-1)])
+        if event[3] < 12: # We won't write chans 12-16 for now...
+            events_matrix1.append(event)
 
-#=======================================================
+  #=======================================================
+  # PRE-PROCESSING
 
-# Composition control seq
-intro_mode_time = statistics.mode([0] + [y[0] for y in melody_chords if y[2] != 9 and y[0] != 0])
-intro_mode_dur = statistics.mode([y[1] for y in melody_chords if y[2] != 9])
-intro_mode_pitch = statistics.mode([y[3] for y in melody_chords if y[2] != 9])
-intro_mode_velocity = statistics.mode([y[4] for y in melody_chords if y[2] != 9])
+  # checking number of instruments in a composition
+  instruments_list_without_drums = list(set([y[3] for y in events_matrix1 if y[3] != 9]))
 
-# Instrument value 12 is reserved for composition control seq
-intro_dur_vel = (intro_mode_dur * 8) + (intro_mode_velocity-1)
-intro_cha_ptc = (12 * 128) + intro_mode_pitch
+  if len(events_matrix1) > 0 and len(instruments_list_without_drums) > 0:
 
-melody_chords_f.extend([intro_mode_time, intro_dur_vel+128, intro_cha_ptc+1152])
+    # recalculating timings
+    for e in events_matrix1:
+        e[1] = int(e[1] / 10) # Max 1 seconds for start-times
+        e[2] = int(e[2] / 20) # Max 2 seconds for durations
 
-# TOTAL DICTIONARY SIZE 2831
+    # Sorting by pitch, then by start-time
+    events_matrix1.sort(key=lambda x: x[4], reverse=True)
+    events_matrix1.sort(key=lambda x: x[1])
 
-#=======================================================
-# MAIN PROCESSING CYCLE
-#=======================================================
+    #=======================================================
+    # FINAL PRE-PROCESSING
 
-for m in melody_chords:
+    melody_chords = []
 
-  # WRITING EACH NOTE HERE
-  dur_vel = (m[1] * 8) + (m[4]-1)
-  cha_ptc = (m[2] * 128) + m[3]
+    pe = events_matrix1[0]
 
-  melody_chords_f.extend([m[0], dur_vel+128, cha_ptc+1152])
-  melody_chords_f1.append([m[0], dur_vel+128, cha_ptc+1152])
+    for e in events_matrix1:
+      if e[1] >= 0 and e[2] > 0:
 
-#=======================================================
+        # Cliping all values...
+        tim = max(0, min(127, e[1]-pe[1]))
+        dur = max(1, min(127, e[2]))
+        cha = max(0, min(11, e[3]))
+        ptc = max(1, min(127, e[4]))
+        vel = max(8, min(127, e[5]))
 
-song = melody_chords_f
-song_f = []
-tim = 0
-dur = 0
-vel = 0
-pitch = 0
-channel = 0
+        velocity = round(vel / 15)
 
-son = []
-song1 = []
+        # Writing final note
+        melody_chords.append([tim, dur, cha, ptc, velocity])
 
-for s in song:
-  if s >= 128 and s < (12*128)+1152:
-    son.append(s)
+        pe = e
+
+  instruments_list = list(set([y[2] for y in melody_chords]))
+  num_instr = len(instruments_list)
+
+  #=======================================================
+  # FINAL PROCESSING
+  #=======================================================
+
+  # Break between compositions / Intro seq
+
+  if 9 in instruments_list:
+    drums_present = 2818 # Yes
   else:
-    if len(son) == 3:
-      song1.append(son)
-    son = []
-    son.append(s)
+    drums_present = 2817 # No
 
-for ss in song1:
+  melody_chords_f.extend([2816, drums_present, 2819+(num_instr-1)])
 
-  tim += ss[0] * 10
+  #=======================================================
 
-  dur = ((ss[1]-128) // 8) * 20
-  vel = (((ss[1]-128) % 8)+1) * 15
+  # Composition control seq
+  intro_mode_time = statistics.mode([0] + [y[0] for y in melody_chords if y[2] != 9 and y[0] != 0])
+  intro_mode_dur = statistics.mode([y[1] for y in melody_chords if y[2] != 9])
+  intro_mode_pitch = statistics.mode([y[3] for y in melody_chords if y[2] != 9])
+  intro_mode_velocity = statistics.mode([y[4] for y in melody_chords if y[2] != 9])
 
-  channel = (ss[2]-1152) // 128
-  pitch = (ss[2]-1152) % 128
+  # Instrument value 12 is reserved for composition control seq
+  intro_dur_vel = (intro_mode_dur * 8) + (intro_mode_velocity-1)
+  intro_cha_ptc = (12 * 128) + intro_mode_pitch
 
-  song_f.append(['note', tim, dur, channel, pitch, vel ])
+  melody_chords_f.extend([intro_mode_time, intro_dur_vel+128, intro_cha_ptc+1152])
 
-detailed_stats = TMIDIX.Tegridy_SONG_to_MIDI_Converter(song_f,
-                                                      output_signature = 'Los Angeles Music Composer',
-                                                      output_file_name = '/content/Los-Angeles-Music-Composer-Seed-Composition',
-                                                      track_name='Project Los Angeles',
-                                                      list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0],
-                                                      number_of_ticks_per_quarter=500)
+  # TOTAL DICTIONARY SIZE 2831
 
-#=======================================================
+  #=======================================================
+  # MAIN PROCESSING CYCLE
+  #=======================================================
 
-print('=' * 70)
-print('Composition stats:')
-print('Composition has', len(melody_chords_f1), 'notes')
-print('Composition has', len(melody_chords_f), 'tokens')
-print('=' * 70)
+  for m in melody_chords:
 
-print('Displaying resulting composition...')
-print('=' * 70)
+    # WRITING EACH NOTE HERE
+    dur_vel = (m[1] * 8) + (m[4]-1)
+    cha_ptc = (m[2] * 128) + m[3]
 
-fname = '/content/Los-Angeles-Music-Composer-Seed-Composition'
+    melody_chords_f.extend([m[0], dur_vel+128, cha_ptc+1152])
+    melody_chords_f1.append([m[0], dur_vel+128, cha_ptc+1152])
 
-x = []
-y =[]
-c = []
+  #=======================================================
 
-colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'pink', 'orange', 'purple', 'gray', 'white', 'gold', 'silver']
+  song = melody_chords_f
+  song_f = []
+  tim = 0
+  dur = 0
+  vel = 0
+  pitch = 0
+  channel = 0
 
-for s in song_f:
-  x.append(s[1] / 1000)
-  y.append(s[4])
-  c.append(colors[s[3]])
+  son = []
+  song1 = []
 
-if render_MIDI_to_audio:
-  FluidSynth("/usr/share/sounds/sf2/FluidR3_GM.sf2", 16000).midi_to_audio(str(fname + '.mid'), str(fname + '.wav'))
-  display(Audio(str(fname + '.wav'), rate=16000))
+  for s in song:
+    if s >= 128 and s < (12*128)+1152:
+      son.append(s)
+    else:
+      if len(son) == 3:
+        song1.append(son)
+      son = []
+      son.append(s)
 
-plt.figure(figsize=(14,5))
-ax=plt.axes(title=fname)
-ax.set_facecolor('black')
+  for ss in song1:
 
-plt.scatter(x,y, c=c)
-plt.xlabel("Time")
-plt.ylabel("Pitch")
-plt.show()
+    tim += ss[0] * 10
+
+    dur = ((ss[1]-128) // 8) * 20
+    vel = (((ss[1]-128) % 8)+1) * 15
+
+    channel = (ss[2]-1152) // 128
+    pitch = (ss[2]-1152) % 128
+
+    song_f.append(['note', tim, dur, channel, pitch, vel ])
+
+  detailed_stats = TMIDIX.Tegridy_SONG_to_MIDI_Converter(song_f,
+                                                        output_signature = 'Los Angeles Music Composer',
+                                                        output_file_name = '/content/Los-Angeles-Music-Composer-Seed-Composition',
+                                                        track_name='Project Los Angeles',
+                                                        list_of_MIDI_patches=[0, 24, 32, 40, 42, 46, 56, 71, 73, 0, 53, 19, 0, 0, 0, 0],
+                                                        number_of_ticks_per_quarter=500)
+
+  #=======================================================
+
+  print('=' * 70)
+  print('Composition stats:')
+  print('Composition has', len(melody_chords_f1), 'notes')
+  print('Composition has', len(melody_chords_f), 'tokens')
+  print('=' * 70)
+
+  print('Displaying resulting composition...')
+  print('=' * 70)
+
+  fname = '/content/Los-Angeles-Music-Composer-Seed-Composition'
+
+  x = []
+  y =[]
+  c = []
+
+  colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'pink', 'orange', 'purple', 'gray', 'white', 'gold', 'silver']
+
+  for s in song_f:
+    x.append(s[1] / 1000)
+    y.append(s[4])
+    c.append(colors[s[3]])
+
+  if render_MIDI_to_audio:
+    FluidSynth("/usr/share/sounds/sf2/FluidR3_GM.sf2", 16000).midi_to_audio(str(fname + '.mid'), str(fname + '.wav'))
+    display(Audio(str(fname + '.wav'), rate=16000))
+
+  plt.figure(figsize=(14,5))
+  ax=plt.axes(title=fname)
+  ax.set_facecolor('black')
+
+  plt.scatter(x,y, c=c)
+  plt.xlabel("Time")
+  plt.ylabel("Pitch")
+  plt.show()
+
+else:
+  print('=' * 70)
 
 """# (CONTINUATION)"""
 
