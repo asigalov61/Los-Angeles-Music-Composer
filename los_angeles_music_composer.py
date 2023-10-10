@@ -359,6 +359,9 @@ for i in range(number_of_batches_to_generate):
 """# (CUSTOM MIDI)"""
 
 #@title Load Seed MIDI
+
+#@markdown Press play button to to upload your own seed MIDI or to load one of the provided sample seed MIDIs from the dropdown list below
+
 select_seed_MIDI = "Upload your own custom MIDI" #@param ["Upload your own custom MIDI", "Los-Angeles-Music-Composer-Piano-Seed-1", "Los-Angeles-Music-Composer-Piano-Seed-2", "Los-Angeles-Music-Composer-Piano-Seed-3", "Los-Angeles-Music-Composer-Piano-Seed-4", "Los-Angeles-Music-Composer-Piano-Seed-5", "Los-Angeles-Music-Composer-MI-Seed-1", "Los-Angeles-Music-Composer-MI-Seed-2", "Los-Angeles-Music-Composer-MI-Seed-3", "Los-Angeles-Music-Composer-MI-Seed-4", "Los-Angeles-Music-Composer-MI-Seed-5"]
 render_MIDI_to_audio = False # @param {type:"boolean"}
 
@@ -744,11 +747,13 @@ for i in range(number_of_batches_to_generate):
 
 #@title Pitches/Instruments Inpainting
 
-#@markdown NOTE: You can stop the inpainting at any time to render partial results
-
 #@markdown Inpainting settings
 
-#@markdown Select desired instruments to inpaint (any combination is fine)
+#@markdown Select desired instruments to inpaint.
+
+#@markdown Selected instruments MUST BE present in the composition for inpainting to work
+
+#@markdown You can stop the inpainting at any time to render partial results
 
 Piano = False #@param {type:"boolean"}
 Guitar = False #@param {type:"boolean"}
@@ -759,7 +764,6 @@ Harp = False #@param {type:"boolean"}
 Trumpet = False #@param {type:"boolean"}
 Clarinet = False #@param {type:"boolean"}
 Flute = False #@param {type:"boolean"}
-Drums = False #@param {type:"boolean"}
 Choir = False #@param {type:"boolean"}
 Organ = False #@param {type:"boolean"}
 
@@ -767,8 +771,10 @@ Organ = False #@param {type:"boolean"}
 
 number_of_prime_notes = 64 #@param {type:"slider", min:1, max:512, step:1}
 number_of_memory_tokens = 4095 # @param {type:"slider", min:6, max:4095, step:3}
-number_of_samples_per_inpainted_note = 4 #@param {type:"slider", min:1, max:16, step:1}
+number_of_samples_per_inpainted_note = 1 #@param {type:"slider", min:1, max:16, step:1}
 temperature = 1 #@param {type:"slider", min:0.1, max:1, step:0.1}
+
+#@markdown Other settings
 render_MIDI_to_audio = True # @param {type:"boolean"}
 
 
@@ -823,7 +829,7 @@ for i in tqdm.tqdm(range(number_of_prime_notes, len(melody_chords_f1))):
 
   try:
 
-    if (melody_chords_f1[i][2]-1152) // 128 in inpaint_instrument:
+    if ((melody_chords_f1[i][2]-1152) // 128) in inpaint_instrument:
 
       out2.extend(melody_chords_f1[i][:2])
 
