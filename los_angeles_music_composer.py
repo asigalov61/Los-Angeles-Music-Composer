@@ -130,8 +130,8 @@ torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
 torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
 device_type = 'cuda'
 
-if model_precision == 'bloat16' and torch.cuda.is_bf16_supported():
-  dtype = 'bloat16'
+if model_precision == 'bfloat16' and torch.cuda.is_bf16_supported():
+  dtype = 'bfloat16'
 else:
   dtype = 'float16'
 
