@@ -807,9 +807,6 @@ if Clarinet:
 if Flute:
   inpaint_instrument.append(8)
 
-if Drums:
-  inpaint_instrument.append(9)
-
 if Choir:
   inpaint_instrument.append(10)
 
