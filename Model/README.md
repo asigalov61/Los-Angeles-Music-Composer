@@ -23,5 +23,11 @@
 
 ***
 
+## [NEW 11/09/2023] Alternative Los Angeles Music Composer Pre-Trained Model is now available and can be downloaded from Hugging Face repo at the link below
+
+### [Los Angeles Music Composer Alternative Pre-Trained Model](https://huggingface.co/asigalov61/Los-Angeles-Music-Composer/blob/main/Los_Angeles_Music_Composer_Alternative_Small_Trained_Model_86456_steps_0.7524_loss.pth)
+
+***
+
 ### Project Los Angeles
 ### Tegridy Code 2023
