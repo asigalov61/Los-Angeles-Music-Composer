@@ -45,14 +45,17 @@
 
 #### Best model/implementation overall. Try it out! :)
 
+### 🐘[Giant Music Transformer](https://github.com/asigalov61/Giant-Music-Transformer)🐘
 
-### 🥈[Euterpe X](https://github.com/asigalov61/Euterpe-X)🥈
-
-#### Most stable and capable model/implementation. Great for generating complex compositions.
+#### SOTA long context high-precision model/implementation with true full MIDI instruments range and octo-velocity
 
 ### 🥉[Lars Ulrich Transformer](https://github.com/asigalov61/Lars-Ulrich-Transformer)🥉
 
 #### Need great drums?!? Look no further!!! :)
+
+### 🎼[Orchestrator](https://github.com/asigalov61/Orchestrator)🎼
+
+#### Instruments arrangement/orchestration
 
 ***
 
